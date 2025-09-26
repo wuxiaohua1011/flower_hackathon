@@ -3,11 +3,14 @@
 import torch
 import wandb
 from flwr.app import ArrayRecord, ConfigRecord, Context, MetricRecord
+from flwr.cli.pull import pull
 from flwr.serverapp import Grid, ServerApp
+import subprocess
 from flwr.serverapp.strategy import FedAvg
-
-from medapp.task import Net, load_centralized_dataset, maybe_init_wandb, test
-
+from pathlib import Path
+from medapp.task import load_centralized_dataset, maybe_init_wandb, test
+from medapp.neural_net import Net
+import os
 # Create ServerApp
 app = ServerApp()
 
@@ -15,7 +18,6 @@ app = ServerApp()
 @app.main()
 def main(grid: Grid, context: Context) -> None:
     """Main entry point for the ServerApp."""
-
     # Read run config
     fraction_train: float = context.run_config["fraction-train"]
     num_rounds: int = context.run_config["num-server-rounds"]
@@ -49,10 +51,26 @@ def main(grid: Grid, context: Context) -> None:
     )
 
     # Save final model to disk
-    print("\nSaving final model to disk...")
-    out_dir = context.node_config["output_dir"]
+    out_dir = Path(context.node_config["output_dir"])
+    print(f"Saving final model to {out_dir}")
     state_dict = result.arrays.to_torch_state_dict()
-    torch.save(state_dict, f"{out_dir}/final_model.pt")
+    print("State dict size:", result.arrays.count_bytes())
+    pth = out_dir / "log.txt"
+    with open(pth, "w") as f:
+        f.write(f"Running with {context.node_config}\n")
+        f.write(f"Run ID: {context.run_id}\n")
+    print(f"Log file saved to {pth}")
+    
+    torch.save(state_dict, out_dir / "final_model.pt")
+    # read final_model.pt, and print its size
+    pth = out_dir / "final_model.pt"
+    print("Final model size:", os.path.getsize(pth))
+
+    # print pt size
+    # torch.save(state_dict, f"{out_dir}/final_model1.pt")
+    # torch.save(state_dict, f"{out_dir}/final_model2.pt")
+    # torch.save(state_dict, f"{out_dir}/final_model3.pt")
+    # print("Done")
 
 
 def get_global_evaluate_fn(num_classes: int, use_wandb: bool, data_path: str):

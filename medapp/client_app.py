@@ -4,7 +4,8 @@ import torch
 from flwr.app import ArrayRecord, Context, Message, MetricRecord, RecordDict
 from flwr.clientapp import ClientApp
 
-from medapp.task import Net, load_data
+from medapp.task import load_data
+from medapp.neural_net import Net
 from medapp.task import test as test_fn
 from medapp.task import train as train_fn
 
